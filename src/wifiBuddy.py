@@ -28,6 +28,7 @@ def main_menu():
     print("0. Quit")
 
     choice = input(" >>  ")
+    print()
     exec_menu(choice, inspect.stack()[0][3])
 
     return
@@ -52,7 +53,6 @@ def exec_menu(choice, menu_called):
                 pass
         except KeyError:
             print("Invalid input")
-        print(menu_called)
         eval(menu_called)()
     return
 
@@ -67,6 +67,7 @@ def scan_menu():
     print("9. Back")
     print("0. Quit")
     choice = input(" >>  ")
+    print()
     exec_menu(choice, inspect.stack()[0][3])
     return
 
@@ -78,6 +79,7 @@ def display_menu():
     print("9. Back")
     print("0. Quit")
     choice = input(" >>  ")
+    print()
     exec_menu(choice, inspect.stack()[0][3])
     return
 
@@ -90,6 +92,7 @@ def deauth_menu():
     print("9. Back")
     print("0. Quit")
     choice = input(" >>  ")
+    print()
     exec_menu(choice, inspect.stack()[0][3])
     return
 
