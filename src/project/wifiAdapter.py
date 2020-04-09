@@ -54,6 +54,16 @@ class WifiAdapter:
             self.updateClients(client)
         self.findDataFrames(pkt)
 
+    def scanForClientsOfMac(self, apMac):
+        def scanClient(pkt):
+            client = self.checkForClient(pkt)
+            if client:
+                self.updateClients(client)
+            self.findDataFrames(pkt)
+            self.findDataFramesForAP(pkt, apMac)
+
+        return scanClient
+
     def checkForClient(self, pkt):
         # check for client looking for APs
         if pkt.getlayer(Dot11) != None and pkt.type == 0 and pkt.subtype == 4: # probe request
@@ -88,10 +98,49 @@ class WifiAdapter:
         return None
 
 
+    def findDataFramesForAP(self, pkt,apMac):
+        # Make sure the packet has the Scapy Dot11 layer present
+        if pkt.getlayer(Dot11) != None and pkt.type == 0 and ( pkt.addr1 == apMac or pkt.addr2 == apMac):
+            if pkt.subtype == 4:  # probe request
+                if pkt.info != b'':  # broadcast probe request
+                    client = Client(pkt.addr2, savedAps=[pkt.info])
+                    if pkt.addr2 not in self.foundClients:
+                        print(pkt.addr2 + " looking for " + apMac)
+                    return client
+            elif pkt.getlayer(Dot11).addr1.upper() != "FF:FF:FF:FF:FF:FF":
+                receiverMAC = pkt.getlayer(Dot11).addr1
+                senderMAC = pkt.getlayer(Dot11).addr2
+                if receiverMAC in self.foundAPs:
+                    client = Client(senderMAC, savedAps=[receiverMAC], connectedAP=receiverMAC)
+                    self.foundAPs[receiverMAC].clients.append(senderMAC)
+                    print(senderMAC + " looking for " + apMac)
+                    return client
+                elif senderMAC in self.foundAPs:
+                    client = Client(receiverMAC, savedAps=[senderMAC], connectedAP=senderMAC)
+                    self.foundAPs[senderMAC].clients.append(receiverMAC)
+                    print(receiverMAC + " looking for " + apMac)
+                    return client
+                elif not senderMAC in self.foundAPs and not receiverMAC in self.foundAPs:
+                    print("found loose client")
+
+        return None
+
+
     def showFoundAPs(self):
         for mac, ap in self.foundAPs.items():
             print(ap)
 
+    def listFoundAPs(self):
+        counter = 1
+        for mac, ap in self.foundAPs.items():
+            print(str(counter) + ". " + mac + " (" + str(ap.ssid) + ")")
+            counter += 1
+
+    def getAPsAsList(self):
+        apList = []
+        for mac, item in self.foundAPs.items():
+            apList.append(mac)
+        return apList
 
     def findDataFrames(self, pkt):
         if pkt.getlayer(Dot11) != None and pkt.getlayer(Dot11).type == 2 and not pkt.haslayer(EAPOL) \
@@ -122,9 +171,6 @@ class WifiAdapter:
                 # already in known Clients update information
                 else:
                     self.foundClients[sn].connectedAP = rc
-
-
-
 
     # check if there is an AP sending a Beacon in the packet
     def checkForBeacon(self, pkt):
@@ -198,13 +244,14 @@ class WifiAdapter:
             print("Found new Access Point: " + str(accessPoint))
             self.foundAPs[accessPoint.macAdress] = accessPoint
 
+
     def startSniffingAPs(self):
         print("Sniffing for access points " + str(self.iface) + "...")
 
         for channel in range(1, 14):
             os.system("iwconfig " + self.iface + " channel " + str(channel))
             print("Sniffing for APs on interface " + str(self.iface) + " channel " + str(channel) + "...")
-            sniff(iface=self.iface, prn=self.scanForAPs, store=0, count=10, timeout=5)
+            sniff(iface=self.iface, prn=self.scanForAPs, store=0, count=1000, timeout=30)
         print("finished")
 
     def startSniffingClients(self):
@@ -214,6 +261,17 @@ class WifiAdapter:
             os.system("iwconfig " + self.iface + " channel " + str(channel))
             print("Sniffing for clients on interface " + str(self.iface) + " channel " + str(channel) + "...")
             sniff(iface=self.iface, prn=self.scanForClients, store=0, count=10, timeout=5)
+        print("finished")
+
+    def startSniffingSpecificAP(self, apMac):
+        print(self.foundAPs[apMac])
+        print("Sniffing AP " + apMac + " (" + str(self.foundAPs[apMac].ssid) + ") on " + str(self.iface) + "...")
+
+        apChannel = int(self.foundAPs[apMac].channel)
+        for channel in range(apChannel, apChannel+1):
+            os.system("iwconfig " + self.iface + " channel " + str(channel))
+            print("Sniffing for clients on interface " + str(self.iface) + " channel " + str(channel) + "...")
+            sniff(iface=self.iface, prn=self.scanForClientsOfMac(apMac), store=0, count=100, timeout=5)
         print("finished")
 
     def startSniffingForEverything(self):
