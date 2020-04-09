@@ -114,6 +114,8 @@ main_menu_actions = {
 }
 scan_menu_actions = {
     "1": wa.startSniffingForEverything,
+    "2": wa.startSniffingAPs,
+    "3": wa.startSniffingClients,
     "9": main_menu
 }
 
