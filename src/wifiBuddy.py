@@ -5,7 +5,9 @@ import sys, os
 from project import utils
 from project import wifiAdapter
 
-wifiInterface = "wlx00c0ca984618"
+from project import almightyController
+
+
 
 # Menu actions filled at bottom
 main_menu_actions = {}
@@ -14,10 +16,12 @@ display_menu_actions = {}
 deauth_menu_actions = {}
 scan_chooseAP_menu_actions = {}
 
+
 helper = utils.Util()
 helper.check_root()
+aController = almightyController.AlmightyController()
 
-wa = wifiAdapter.WifiAdapter(wifiInterface)
+
 
 def main_menu():
     os.system('clear')
@@ -82,15 +86,15 @@ def scan_chooseAP_menu():
     os.system('clear')
     print("Which AP do you want to scan?")
 
-    apList = wa.getAPsAsList()
+    apList = aController.getAPsAsList()
 
     # no APs found yet
     if len(apList) == 0:
-        wa.startSniffingAPs()
-        apList = wa.getAPsAsList()
+        aController.startSniffingAPs()
+        apList = aController.getAPsAsList()
 
     for i in range(len(apList)):
-        print(str(i+1) + ". " + apList[i] + " (" + str(wa.foundAPs[apList[i]].ssid) + ")")
+        print(str(i+1) + ". " + apList[i] + " (" + str(aController.foundAPs[apList[i]].ssid) + ")")
 
     print("0. Quit")
 
@@ -140,20 +144,21 @@ main_menu_actions = {
     '0': exit,
 }
 scan_menu_actions = {
-    "1": wa.startSniffingForEverything,
-    "2": wa.startSniffingAPs,
-    "3": wa.startSniffingClients,
+    "1": aController.startSniffingForEverything,
+    "2": aController.startSniffingAPs,
+    "3": aController.startSniffingClients,
     "4": scan_chooseAP_menu,
     "9": main_menu
 }
 
 scan_chooseAP_menu_actions = {
-    "1": wa.startSniffingSpecificAP,
+    "1": aController.startSniffingSpecificAP,
     "0": main_menu
 }
 
 display_menu_actions = {
-    "1": wa.showFoundAPs,
+    "1": aController.showFoundAPs,
+    "2": aController.showFoundClients,
     "9": main_menu
 }
 
@@ -163,7 +168,6 @@ deauth_menu_actions = {
 
 
 if __name__ == "__main__":
-
 
 
 
