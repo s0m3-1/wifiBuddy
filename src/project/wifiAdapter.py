@@ -38,24 +38,6 @@ class WifiAdapter():
             sys.exit(1)
         os.system('ifconfig ' + self.iface + ' up')
 
-    """
-    def scanForEverything(self, pkt):
-        self.scanForAPs(pkt)
-        self.scanForClients(pkt)
-
-    def scanForAPs(self, pkt):
-        accessPoint = self.checkForBeacon(pkt)
-        if accessPoint:
-            self.updateAPs(accessPoint)
-        self.checkHiddenSSID(pkt)
-    """
-
-
-    def getAPsAsList(self):
-        apList = []
-        for mac, item in self.foundAPs.items():
-            apList.append(mac)
-        return apList
 
     def startSniffingAPs(self, callback, updateFunc):
         print("Sniffing for access points " + str(self.iface) + "...")
@@ -65,13 +47,12 @@ class WifiAdapter():
             sniff(iface=self.iface, prn=updateFunc(callback()), store=0, count=1000, timeout=10)
         print("finished")
 
-    def startSniffingClients(self):
+    def startSniffingClients(self, callback, updateFunc):
         print("Sniffing for clients " + str(self.iface) + "...")
-
         for channel in range(1, 14):
             os.system("iwconfig " + self.iface + " channel " + str(channel))
             print("Sniffing for clients on interface " + str(self.iface) + " channel " + str(channel) + "...")
-            sniff(iface=self.iface, prn=self.scanForClients, store=0, count=10, timeout=5)
+            sniff(iface=self.iface, prn=updateFunc(callback()), store=0, count=10, timeout=5)
         print("finished")
 
     def startSniffingSpecificAP(self, apMac):

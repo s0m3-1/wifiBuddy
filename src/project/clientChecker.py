@@ -13,6 +13,28 @@ class ClientChecker(CheckerInterface):
     def __contains__(self):
         pass
 
+    def check(self, ap=None):
+        def checkPkt(pkt):
+
+            client = None
+            if ap:
+                client = self.findDataFramesForAP(pkt, ap)
+            else:
+                client = self.checkForProbingClient(pkt)
+
+                # no probing client found
+                # check for Client trying to associate
+                if not client:
+                    client = self.checkForAssociationClient(pkt)
+
+            if client:
+                return client
+            else:
+                return None
+
+        return checkPkt
+
+    """
     # analyse if there is a client in pkt
     def check(self, pkt, ap=None):
         client = None
@@ -30,6 +52,7 @@ class ClientChecker(CheckerInterface):
             return client
         else:
             return None
+    """
 
     def checkForAssociationClient(self, pkt):
         # pkt.subtype == 0 -> Association Request

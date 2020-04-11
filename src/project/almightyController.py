@@ -1,6 +1,7 @@
 from scapy.layers.dot11 import Dot11, Dot11ProbeResp
 from scapy.layers.eap import EAPOL
 
+from .checker import Checker
 from .wifiAdapter import WifiAdapter
 from .clientChecker import ClientChecker
 
@@ -32,20 +33,20 @@ class AlmightyController():
         self.foundClients = {}
         self.aChecker = ApChecker()
         self.foundAPs = {}
+        self.checker = Checker()
         self.wa = WifiAdapter("wlx00c0ca984618")
         self.helper = Util()
 
 
     # push this to end
     def startSniffingForEverything(self):
-        pass
-        #self.wa.startSniffingForEverything(self.aChecker)
+        self.wa.startSniffingForEverything(self.checker.check, self.updateClientsAndAps)
 
     def startSniffingAPs(self):
         self.wa.startSniffingAPs(self.aChecker.check, self.updateAPs)
 
     def startSniffingClients(self):
-        self.wa.startSniffingClients()
+        self.wa.startSniffingClients(self.cChecker.check, self.updateClients)
 
     def startSniffingSpecificAP(self):
         self.wa.startSniffingSpecificAP()
@@ -59,13 +60,14 @@ class AlmightyController():
             elif suspect == "clientAndAp":
                 self.checkForClientAndAp(pkt)
 
+    """
     def checkForClient(self, pkt):
         client = self.findClientForKnownAp(pkt)
         if not client:
             client = self.cChecker.check(pkt)
         if client:
             self.updateClients(client)
-
+    """
     def checkForAp(self, pkt):
         ap = self.aChecker.check(pkt)
         if ap:
@@ -136,17 +138,28 @@ class AlmightyController():
         else:
             return False
 
-    # gets manufacturer, adds to foundClients not known and might update savedAPs for client
-    def updateClients(self, possibleNewClient):
-        possibleNewClient.manufacturer = self.helper.get_oui(possibleNewClient.macAdress)
-        if not possibleNewClient.macAdress in self.foundClients:  # if client not yet known
-            print("Found new Client: " + str(possibleNewClient))
-            self.foundClients[possibleNewClient.macAdress] = possibleNewClient
-        elif len(possibleNewClient.savedAPs) > 0:  # already known, maybe have to update savedAps for that client
-            if not possibleNewClient.savedAPs[0] in self.foundClients[possibleNewClient.macAdress].savedAPs:
-                self.foundClients[possibleNewClient.macAdress].savedAPs.append(possibleNewClient.savedAPs[0])
+    def updateClientsAndAps(self, possibleNewDevice):
+        self.updateClients(possibleNewDevice)
+        self.updateAps(possibleNewDevice)
 
-        self.updateAPconnectedClient(possibleNewClient)
+    # gets manufacturer, adds to foundClients not known and might update savedAPs for client
+    def updateClients(self, callback):
+
+        def packetHandler(pkt):
+            possibleNewClient = callback(pkt)
+
+            if possibleNewClient:
+                possibleNewClient.manufacturer = self.helper.get_oui(possibleNewClient.macAdress)
+                if not possibleNewClient.macAdress in self.foundClients:  # if client not yet known
+                    print("Found new Client: " + str(possibleNewClient))
+                    self.foundClients[possibleNewClient.macAdress] = possibleNewClient
+                elif len(possibleNewClient.savedAPs) > 0:  # already known, maybe have to update savedAps for that client
+                    if not possibleNewClient.savedAPs[0] in self.foundClients[possibleNewClient.macAdress].savedAPs:
+                        self.foundClients[possibleNewClient.macAdress].savedAPs.append(possibleNewClient.savedAPs[0])
+
+                self.updateAPconnectedClient(possibleNewClient)
+
+        return packetHandler
 
     # checks if the client is registered as connected client in Access  Point
     def updateAPconnectedClient(self, client):
@@ -154,7 +167,7 @@ class AlmightyController():
             if not client.macAdress in self.foundAPs[client.connectedAP].clients:
                 self.foundAPs[client.connectedAP].clients.append(client.macAdress)
 
-    def updateAPs(self, callback):#accessPoint):
+    def updateAPs(self, callback):
 
         def packetHandler(pkt):
             accessPoint = callback(pkt)
@@ -165,7 +178,6 @@ class AlmightyController():
                 manufacturer = self.helper.get_oui(accessPoint.macAdress)
                 self.foundAPs[accessPoint.macAdress].manufacturer = manufacturer
             self.checkHiddenSSID(pkt)
-
 
         return packetHandler
 
