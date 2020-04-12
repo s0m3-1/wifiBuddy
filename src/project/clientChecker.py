@@ -1,31 +1,21 @@
 from scapy.layers.dot11 import Dot11
-from scapy.layers.eap import EAPOL
 from .client import Client
-from .checkerInterface import CheckerInterface
 
 
-class ClientChecker(CheckerInterface):
+class ClientChecker:
 
-    def __init__(self):
-        pass
-
-    # ToDo check if client known
-    def __contains__(self):
-        pass
-
-    def check(self, ap=None):
+    @staticmethod
+    def check(ap=None, foundClients=None, foundAPs=None):
         def checkPkt(pkt):
-
-            client = None
             if ap:
-                client = self.findDataFramesForAP(pkt, ap)
+                client = ClientChecker.findDataFramesForAP(pkt, ap, foundClients, foundAPs)
             else:
-                client = self.checkForProbingClient(pkt)
+                client = ClientChecker.checkForProbingClient(pkt)
 
                 # no probing client found
                 # check for Client trying to associate
                 if not client:
-                    client = self.checkForAssociationClient(pkt)
+                    client = ClientChecker.checkForAssociationClient(pkt)
 
             if client:
                 return client
@@ -34,46 +24,46 @@ class ClientChecker(CheckerInterface):
 
         return checkPkt
 
-    """
-    # analyse if there is a client in pkt
-    def check(self, pkt, ap=None):
-        client = None
+    @staticmethod
+    def checkWithPkt(pkt, ap=None, foundClients=None, foundAPs=None):
         if ap:
-            client = self.findDataFramesForAP(pkt, ap)
+            client = ClientChecker.findDataFramesForAP(pkt, ap, foundClients, foundAPs)
         else:
-            client = self.checkForProbingClient(pkt)
+            client = ClientChecker.checkForProbingClient(pkt)
 
             # no probing client found
             # check for Client trying to associate
             if not client:
-                client = self.checkForAssociationClient(pkt)
+                client = ClientChecker.checkForAssociationClient(pkt)
 
         if client:
             return client
         else:
             return None
-    """
 
-    def checkForAssociationClient(self, pkt):
+    @staticmethod
+    def checkForAssociationClient(pkt):
         # pkt.subtype == 0 -> Association Request
         # pkt.subtype == 2 -> Reassociation Request
-        if pkt.getlayer(Dot11) != None and (pkt.subtype == 0 or pkt.subtype == 2):
+        if pkt.getlayer(Dot11) is not None and (pkt.subtype == 0 or pkt.subtype == 2):
             client = Client(pkt.addr2)
             return client
         else:
             return None
 
-    def checkForProbingClient(self, pkt):
+    @staticmethod
+    def checkForProbingClient(pkt):
         # pkt.type == 0 -> Management frame
         # pkt.subtype == 4 -> Probe Request
 
-        if pkt.getlayer(Dot11) != None and pkt.type == 0 and pkt.subtype == 4: # probe request
-            if pkt.info != b'': # broadcast probe request
+        if pkt.getlayer(Dot11) is not None and pkt.type == 0 and pkt.subtype == 4:  # probe request
+            if pkt.info != b'':  # broadcast probe request
                 client = Client(pkt.addr2, savedAps=[pkt.info])
                 return client
         else:
             return None
 
+    """
     def scanForClientsOfMac(self, apMac):
         def scanClient(pkt):
             client = self.checkForClient(pkt)
@@ -83,30 +73,42 @@ class ClientChecker(CheckerInterface):
             self.findDataFramesForAP(pkt, apMac)
 
         return scanClient
+    """
 
-    def findDataFramesForAP(self, pkt,apMac):
+    @staticmethod
+    def findDataFramesForAP(pkt, apMac, foundClients, foundAPs):
+
         # Make sure the packet has the Scapy Dot11 layer present
-        if pkt.getlayer(Dot11) != None and pkt.type == 0 and ( pkt.addr1 == apMac or pkt.addr2 == apMac):
+        if pkt.addr1 == apMac or pkt.addr2 == apMac:
+            print("================")
+            print(pkt.addr1, pkt.getlayer(Dot11).addr1)
+            print(pkt.addr2, pkt.getlayer(Dot11).addr2)
+            print(pkt.addr3, pkt.getlayer(Dot11).addr3)
+            print(apMac)
+            print("================")
             if pkt.subtype == 4:  # probe request
                 if pkt.info != b'':  # broadcast probe request
                     client = Client(pkt.addr2, savedAps=[pkt.info])
-                    if pkt.addr2 not in self.foundClients:
+                    if pkt.addr2 not in foundClients:
                         print(pkt.addr2 + " looking for " + apMac)
+                    print("Found: " + str(client))
                     return client
-            elif pkt.getlayer(Dot11).addr1.upper() != "FF:FF:FF:FF:FF:FF":
-                receiverMAC = pkt.getlayer(Dot11).addr1
-                senderMAC = pkt.getlayer(Dot11).addr2
-                if receiverMAC in self.foundAPs:
+            elif pkt.addr1.upper() != "FF:FF:FF:FF:FF:FF":
+                receiverMAC = pkt.addr1
+                senderMAC = pkt.addr2
+                if receiverMAC in foundAPs:
                     client = Client(senderMAC, savedAps=[receiverMAC], connectedAP=receiverMAC)
-                    self.foundAPs[receiverMAC].clients.append(senderMAC)
+                    foundAPs[receiverMAC].clients.append(senderMAC)
                     print(senderMAC + " looking for " + apMac)
+                    print("Found: " + str(client))
                     return client
-                elif senderMAC in self.foundAPs:
+                elif senderMAC in foundAPs:
                     client = Client(receiverMAC, savedAps=[senderMAC], connectedAP=senderMAC)
-                    self.foundAPs[senderMAC].clients.append(receiverMAC)
+                    foundAPs[senderMAC].clients.append(receiverMAC)
                     print(receiverMAC + " looking for " + apMac)
+                    print("Found: " + str(client))
                     return client
-                elif not senderMAC in self.foundAPs and not receiverMAC in self.foundAPs:
+                elif senderMAC not in foundAPs and receiverMAC not in foundAPs:
                     print("found loose client")
 
         return None

@@ -1,6 +1,4 @@
-
 class AccessPoint:
-
     ssid = None
     macAdress = None
     clients = None
@@ -18,22 +16,23 @@ class AccessPoint:
         self.crypto = crypto
         self.manufacturer = manufacturer
 
-
     def __str__(self):
-        #ssid = self.ssid.decode("utf-8")
-        ssid=self.ssid
+        # ssid = self.ssid.decode("utf-8")
+        ssid = self.ssid
 
-        if len(ssid) == 0 or ssid ==  b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00':
+        if len(ssid) == 0 or ssid == b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' \
+                                     b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00':
             ssid = "<Hidden SSID>"
             self.wasHidden = True
 
-        return str(ssid) + " - " + self.macAdress + ", channel " + str(self.channel) + ", " + self.crypto + ", Manu: " + self.manufacturer + " - was Hidden: " + str(self.wasHidden)
+        return str(ssid) + " - " + self.macAdress + ", channel " + str(self.channel) + ", " + self.crypto + \
+                           ", Manu: " + self.manufacturer + " - was Hidden: " + str(self.wasHidden)
 
     def printAPinformation(self):
         print(self)
-        amountClients = (len(self.clients.items()))
+        amountClients = (len(self.clients))
         counter = 0
-        for key, client in self.clients.items():
+        for client in self.clients:
             if counter == amountClients - 1:
                 print("  └ " + str(client))
             else:
@@ -42,6 +41,5 @@ class AccessPoint:
             counter = counter + 1
 
     def listClients(self):
-        for key, client in self.clients.items():
+        for client in self.clients:
             print(client)
-

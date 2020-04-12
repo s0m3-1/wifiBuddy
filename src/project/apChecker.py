@@ -1,38 +1,35 @@
-from scapy.layers.dot11 import Dot11, Dot11Elt, Dot11ProbeResp
-from scapy.layers.eap import EAPOL
-from .client import Client
-
+from scapy.layers.dot11 import Dot11, Dot11Elt
 from .accessPoint import AccessPoint
-from .checkerInterface import CheckerInterface
 
 
-class ApChecker(CheckerInterface):
-
-    hiddenSSIDs = None
+class ApChecker:
 
     def __init__(self):
         self.hiddenSSIDs = []
 
     def check(self):
         def checkPkt(pkt):
-
             ap = self.checkForBeaconingAp(pkt)
             return ap
 
         return checkPkt
 
-
+    def checkWithPkt(self, pkt):
+        ap = self.checkForBeaconingAp(pkt)
+        return ap
 
     # check if there is an AP sending a Beacon in the packet
     def checkForBeaconingAp(self, pkt):
         # Packettype 0 -> Management type
         # Subtype 8 ->  Beacon
         hiddenFlag = False
-        if pkt.getlayer(Dot11) != None and pkt.type == 0 and pkt.subtype == 8:  ## type beaconframe
+        if pkt.getlayer(Dot11) is not None and pkt.type == 0 and pkt.subtype == 8:  # type beaconframe
             macAdress = pkt.getlayer(Dot11).addr3
             ssid = pkt.getlayer(Dot11Elt).info
             channel, crypto = self.getChannelAndSecurity(pkt)
-            if (not pkt.info or pkt.info ==  b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')  and not macAdress in self.hiddenSSIDs:
+            if (not pkt.info or pkt.info == b'\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+                                            b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00') \
+                    and macAdress not in self.hiddenSSIDs:
                 self.hiddenSSIDs.append(macAdress)
                 print("Found new hidden SSID for: " + macAdress)
                 hiddenFlag = True
@@ -44,10 +41,9 @@ class ApChecker(CheckerInterface):
         p = pkt[Dot11Elt]
         crypto = set()
         cap = pkt.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}")
+        channel = None
         while isinstance(p, Dot11Elt):
-            if p.ID == 0:
-                essid = p.info
-            elif p.ID == 3:
+            if p.ID == 3:
                 channel = ord(p.info)
             elif p.ID == 48:
                 crypto.add("WPA2")
@@ -60,5 +56,3 @@ class ApChecker(CheckerInterface):
             else:
                 crypto.add("OPN")
         return channel, ' / '.join(crypto)
-
-
