@@ -12,8 +12,7 @@ display_menu_actions = {}
 deauth_menu_actions = {}
 scan_chooseAP_menu_actions = {}
 
-helper = Util()
-helper.check_root()
+Util.check_root()
 aController = AlmightyController()
 
 
@@ -95,7 +94,6 @@ def scan_chooseAP_menu():
 
     choice = input(" >>  ")
     print()
-    #todo
     print("going for: " + apList[int(choice) - 1])
     exec_menu(choice, inspect.stack()[0][3], information=apList[int(choice) - 1])
     return

@@ -3,13 +3,15 @@ from netaddr import *
 
 
 class Util:
-    # todo change to static?
-    def check_root(self):
+
+    @staticmethod
+    def check_root():
         if not os.geteuid() == 0:
             print("Run as root.")
             exit(1)
 
-    def get_oui(self, mac):
+    @staticmethod
+    def get_oui(mac):
         maco = EUI(mac)
         try:
             manuf = maco.oui.registration().org

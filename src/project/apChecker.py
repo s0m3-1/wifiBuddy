@@ -4,40 +4,43 @@ from .accessPoint import AccessPoint
 
 class ApChecker:
 
-    def __init__(self):
-        self.hiddenSSIDs = []
+    hiddenSSIDs = []
 
-    def check(self):
+    @classmethod
+    def check(cls):
         def checkPkt(pkt):
-            ap = self.checkForBeaconingAp(pkt)
+            ap = cls.checkForBeaconingAp(pkt)
             return ap
 
         return checkPkt
 
-    def checkWithPkt(self, pkt):
-        ap = self.checkForBeaconingAp(pkt)
+    @classmethod
+    def checkWithPkt(cls, pkt):
+        ap = cls.checkForBeaconingAp(pkt)
         return ap
 
     # check if there is an AP sending a Beacon in the packet
-    def checkForBeaconingAp(self, pkt):
+    @classmethod
+    def checkForBeaconingAp(cls, pkt):
         # Packettype 0 -> Management type
         # Subtype 8 ->  Beacon
         hiddenFlag = False
         if pkt.getlayer(Dot11) is not None and pkt.type == 0 and pkt.subtype == 8:  # type beaconframe
             macAdress = pkt.getlayer(Dot11).addr3
             ssid = pkt.getlayer(Dot11Elt).info
-            channel, crypto = self.getChannelAndSecurity(pkt)
+            channel, crypto = cls.getChannelAndSecurity(pkt)
             if (not pkt.info or pkt.info == b'\x00\x00\x00\x00\x00\x00\x00\x00\x00'
                                             b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00') \
-                    and macAdress not in self.hiddenSSIDs:
-                self.hiddenSSIDs.append(macAdress)
+                    and macAdress not in cls.hiddenSSIDs:
+                cls.hiddenSSIDs.append(macAdress)
                 print("Found new hidden SSID for: " + macAdress)
                 hiddenFlag = True
             return AccessPoint(ssid, macAdress, hiddenFlag, channel=channel, crypto=crypto)
         else:
             return None
 
-    def getChannelAndSecurity(self, pkt):
+    @staticmethod
+    def getChannelAndSecurity(pkt):
         p = pkt[Dot11Elt]
         crypto = set()
         cap = pkt.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}")

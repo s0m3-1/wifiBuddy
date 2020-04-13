@@ -63,29 +63,11 @@ class ClientChecker:
         else:
             return None
 
-    """
-    def scanForClientsOfMac(self, apMac):
-        def scanClient(pkt):
-            client = self.checkForClient(pkt)
-            if client:
-                self.updateClients(client)
-            self.findDataFrames(pkt)
-            self.findDataFramesForAP(pkt, apMac)
-
-        return scanClient
-    """
-
     @staticmethod
     def findDataFramesForAP(pkt, apMac, foundClients, foundAPs):
 
         # Make sure the packet has the Scapy Dot11 layer present
         if pkt.addr1 == apMac or pkt.addr2 == apMac:
-            print("================")
-            print(pkt.addr1, pkt.getlayer(Dot11).addr1)
-            print(pkt.addr2, pkt.getlayer(Dot11).addr2)
-            print(pkt.addr3, pkt.getlayer(Dot11).addr3)
-            print(apMac)
-            print("================")
             if pkt.subtype == 4:  # probe request
                 if pkt.info != b'':  # broadcast probe request
                     client = Client(pkt.addr2, savedAps=[pkt.info])
