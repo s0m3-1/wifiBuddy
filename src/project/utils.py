@@ -1,16 +1,18 @@
 import os
-from netaddr.core import NotRegisteredError
 from netaddr import *
 
+
 class Util:
-    def check_root(self):
+
+    @staticmethod
+    def check_root():
         if not os.geteuid() == 0:
             print("Run as root.")
             exit(1)
 
-
-    def get_oui(self, mac):
-        maco =EUI(mac)
+    @staticmethod
+    def get_oui(mac):
+        maco = EUI(mac)
         try:
             manuf = maco.oui.registration().org
         except NotRegisteredError:

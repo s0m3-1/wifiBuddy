@@ -2,10 +2,8 @@ import pyfiglet
 import inspect
 import sys, os
 
-from project import utils
-from project import wifiAdapter
-
-wifiInterface = "wlx00c0ca984618"
+from project.utils import Util
+from project.almightyController import AlmightyController
 
 # Menu actions filled at bottom
 main_menu_actions = {}
@@ -14,10 +12,9 @@ display_menu_actions = {}
 deauth_menu_actions = {}
 scan_chooseAP_menu_actions = {}
 
-helper = utils.Util()
-helper.check_root()
+Util.check_root()
+aController = AlmightyController()
 
-wa = wifiAdapter.WifiAdapter(wifiInterface)
 
 def main_menu():
     os.system('clear')
@@ -42,24 +39,24 @@ def exec_menu(choice, menu_called, information=None):
     if ch == '':
         menu_called()
     else:
-        try:
+ #       try:
 
-            if menu_called == "main_menu":
-                main_menu_actions[choice]()
-            elif menu_called == "scan_menu":
-                scan_menu_actions[choice]()
-            elif menu_called == "scan_chooseAP_menu":
-                if choice == "0":
-                    scan_chooseAP_menu_actions["0"]()
-                else:
-                    scan_chooseAP_menu_actions["1"](information)
-            elif menu_called == "display_menu":
-                display_menu_actions[choice]()
-            elif menu_called == "deauth_menu":
-                pass
-        except KeyError as e:
-            print(e)
-            print("Invalid input")
+        if menu_called == "main_menu":
+            main_menu_actions[choice]()
+        elif menu_called == "scan_menu":
+            scan_menu_actions[choice]()
+        elif menu_called == "scan_chooseAP_menu":
+            if choice == "0":
+                scan_chooseAP_menu_actions["0"]()
+            else:
+                print(information)
+                scan_chooseAP_menu_actions["1"](information)
+        elif menu_called == "display_menu":
+            display_menu_actions[choice]()
+        elif menu_called == "deauth_menu":
+            pass
+ #       except KeyError as e:
+ #           print("Invalid input")
         eval(menu_called)()
     return
 
@@ -78,26 +75,29 @@ def scan_menu():
     exec_menu(choice, inspect.stack()[0][3])
     return
 
+
 def scan_chooseAP_menu():
     os.system('clear')
     print("Which AP do you want to scan?")
 
-    apList = wa.getAPsAsList()
+    apList = aController.getAPsAsList()
 
     # no APs found yet
     if len(apList) == 0:
-        wa.startSniffingAPs()
-        apList = wa.getAPsAsList()
+        aController.startSniffingAPs()
+        apList = aController.getAPsAsList()
 
     for i in range(len(apList)):
-        print(str(i+1) + ". " + apList[i] + " (" + str(wa.foundAPs[apList[i]].ssid) + ")")
+        print(str(i + 1) + ". " + apList[i] + " (" + str(aController.foundAPs[apList[i]].ssid) + ")")
 
     print("0. Quit")
 
     choice = input(" >>  ")
     print()
-    exec_menu(choice, inspect.stack()[0][3], information=apList[int(choice)-1])
+    print("going for: " + apList[int(choice) - 1])
+    exec_menu(choice, inspect.stack()[0][3], information=apList[int(choice) - 1])
     return
+
 
 def display_menu():
     print("Alright just displaying this time....what do u wanna see?")
@@ -124,47 +124,33 @@ def deauth_menu():
     return
 
 
-
-def back():
-    menu_actions['main_menu']()
-
-
-def exit():
-    sys.exit()
-
-
 main_menu_actions = {
     "1": scan_menu,
     "2": display_menu,
-    '9': back,
     '0': exit,
 }
 scan_menu_actions = {
-    "1": wa.startSniffingForEverything,
-    "2": wa.startSniffingAPs,
-    "3": wa.startSniffingClients,
+    "1": aController.startSniffingForEverything,
+    "2": aController.startSniffingAPs,
+    "3": aController.startSniffingClients,
     "4": scan_chooseAP_menu,
     "9": main_menu
 }
 
 scan_chooseAP_menu_actions = {
-    "1": wa.startSniffingSpecificAP,
+    "1": aController.startSniffingSpecificAP,
     "0": main_menu
 }
 
 display_menu_actions = {
-    "1": wa.showFoundAPs,
+    "1": aController.showFoundAPs,
+    "2": aController.showFoundClients,
     "9": main_menu
 }
 
 deauth_menu_actions = {
-    "1": 1+1,
+    "1": 1 + 1,
 }
 
-
 if __name__ == "__main__":
-
-
-
-
     main_menu()
